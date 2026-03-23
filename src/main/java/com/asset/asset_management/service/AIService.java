@@ -11,8 +11,7 @@ import java.net.http.HttpResponse;
 @Service
 public class AIService {
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
+
 
     public String getRecommendation(String prompt) {
 
