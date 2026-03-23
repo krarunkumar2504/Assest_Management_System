@@ -1,7 +1,9 @@
-FROM eclipse-temurin:17-jdk-alpine
+FROM maven:3.9.6-eclipse-temurin-17
 
 WORKDIR /app
 
-COPY target/*.jar app.jar
+COPY . .
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+RUN mvn clean package -DskipTests
+
+CMD ["java", "-jar", "target/*.jar"]
