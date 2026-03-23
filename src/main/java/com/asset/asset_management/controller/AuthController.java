@@ -7,10 +7,7 @@ import com.asset.asset_management.model.Employee;
 import com.asset.asset_management.repository.EmployeeRepository;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://asset-frontend-xi.vercel.app"
-})         //@CrossOrigin(origins = "http://localhost:3000")
+
 @RestController
 @RequestMapping("/api")
 public class AuthController {

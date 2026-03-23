@@ -7,10 +7,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://asset-frontend-xi.vercel.app"
-})
 public class AIController {
 
     private final AIService service;

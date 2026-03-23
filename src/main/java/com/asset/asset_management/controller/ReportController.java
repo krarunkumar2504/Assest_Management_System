@@ -8,10 +8,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://asset-frontend-xi.vercel.app"
-})
 public class ReportController {
 
     private final ReportRepository repo;

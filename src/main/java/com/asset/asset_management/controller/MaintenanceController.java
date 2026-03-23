@@ -7,10 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://asset-frontend-xi.vercel.app"
-})
+
 @RestController
 @RequestMapping("/api/maintenance")
 public class MaintenanceController {
