@@ -37,23 +37,31 @@ public class AssetController {
 
     // UPDATE asset
     @PutMapping("/{id}")
-    public Asset updateAsset(@PathVariable Long id, @RequestBody Asset updated) {
+    public Object updateAsset(@PathVariable Long id, @RequestBody Asset updated) {
 
         Asset asset = repo.findById(id).orElse(null);
 
-        if(asset != null) {
-            asset.setAssetName(updated.getAssetName());
-            asset.setAssetType(updated.getAssetType());
-            asset.setLocation(updated.getLocation());
-            asset.setStatus(updated.getStatus());
+        if (asset == null) {
+            return "❌ Asset not found";
         }
+
+        asset.setAssetName(updated.getAssetName());
+        asset.setAssetType(updated.getAssetType());
+        asset.setLocation(updated.getLocation());
+        asset.setStatus(updated.getStatus());
 
         return repo.save(asset);
     }
 
     // DELETE asset
     @DeleteMapping("/{id}")
-    public void deleteAsset(@PathVariable Long id) {
+    public String deleteAsset(@PathVariable Long id) {
+
+        if (!repo.existsById(id)) {
+            return "❌ Asset not found";
+        }
+
         repo.deleteById(id);
+        return "✅ Asset deleted successfully";
     }
 }
