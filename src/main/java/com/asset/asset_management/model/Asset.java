@@ -19,6 +19,9 @@ public class Asset {
     private String assetName;
     private String assetType;
     private String serialNumber;
+    private String department;
+    private String description;
+
 
     private LocalDate purchaseDate;
 
