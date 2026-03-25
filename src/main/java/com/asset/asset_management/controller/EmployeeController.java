@@ -71,15 +71,21 @@ public class EmployeeController {
         return employeeRepo.save(emp);
     }
 
-    // ✅ DELETE EMPLOYEE
     @DeleteMapping("/employees/{id}")
     public String deleteEmployee(@PathVariable Long id) {
 
-        if (!employeeRepo.existsById(id)) {
+        Employee emp = employeeRepo.findById(id).orElse(null);
+
+        if (emp == null) {
             return "❌ Employee not found";
         }
 
-        employeeRepo.deleteById(id);
-        return "✅ Employee deleted successfully";
+        try {
+            employeeRepo.delete(emp);
+            return "✅ Employee deleted successfully";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "❌ Cannot delete employee (linked data exists)";
+        }
     }
 }
