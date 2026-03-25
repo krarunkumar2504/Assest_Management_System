@@ -32,11 +32,11 @@ import java.util.Map;
 // │ UPDATE: removed setDepartment   │ `assets` table has NO `department` column.                   │
 // │  OLD: safeSet("setDepartment")  │ Schema columns for assets: asset_name, asset_type,           │
 // │  NEW: (removed)                 │ serial_number, purchase_date, purchase_cost, current_value,  │
-// │                                 │ useful_life_years, salvage_value, warranty_expiry,            │
+// │                                 │ useful_life_years, salvage_value, warranty_expiry,           │
 // │                                 │ status, location, created_at, updated_at                     │
 // ├─────────────────────────────────┼──────────────────────────────────────────────────────────────┤
 // │ UPDATE: added real schema cols  │ Schema has purchase_cost, serial_number, salvage_value,      │
-// │  NEW: setPurchaseCost           │ useful_life_years, warranty_expiry — all updatable fields     │
+// │  NEW: setPurchaseCost           │ useful_life_years, warranty_expiry — all updatable fields    │
 // │  NEW: setSerialNumber           │ that the old controller was ignoring.                        │
 // │  NEW: setSalvageValue           │                                                              │
 // │  NEW: setUsefulLifeYears        │                                                              │
