@@ -1,6 +1,5 @@
 package com.asset.asset_management.model;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,6 +13,7 @@ public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @ManyToOne
     @JoinColumn(name = "department_id")
     private Department department;
@@ -22,6 +22,12 @@ public class Employee {
     private String email;
     private String role;
     private String password;
+
+    // ✅ ADDED FIELD (IMPORTANT)
+    @Column(name = "status")
+    private String status = "Active";
+
+    // -------------------- GETTERS & SETTERS --------------------
 
     public String getPassword() {
         return password;
@@ -71,5 +77,13 @@ public class Employee {
         this.id = id;
     }
 
+    // ✅ FIXED STATUS METHODS (String instead of boolean)
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

@@ -27,12 +27,11 @@ public class EmployeeController {
     // ✅ CREATE EMPLOYEE
     @PostMapping("/employees")
     public Employee createEmployee(@RequestBody Employee employee) {
-
-        Department dept = departmentRepo.findById(employee.getDepartment().getId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-
-        employee.setDepartment(dept);
-
+        if (employee.getDepartment() != null && employee.getDepartment().getId() != null) {
+            Department dept = departmentRepo.findById(employee.getDepartment().getId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+            employee.setDepartment(dept);
+        }
         return employeeRepo.save(employee);
     }
 
@@ -48,44 +47,61 @@ public class EmployeeController {
         return employeeRepo.findById(id).orElse(null);
     }
 
-    // ✅ UPDATE EMPLOYEE
+    // ✅ UPDATE EMPLOYEE — now saves password AND status
     @PutMapping("/employees/{id}")
     public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee updated) {
 
-        Employee emp = employeeRepo.findById(id).orElse(null);
+        Employee emp = employeeRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Employee not found: " + id));
 
-        if (emp != null) {
-
+        // Name
+        if (updated.getEmployeeName() != null) {
             emp.setEmployeeName(updated.getEmployeeName());
-            emp.setEmail(updated.getEmail());
-            emp.setRole(updated.getRole());
+        }
 
-            // handle department update safely
-            if (updated.getDepartment() != null) {
-                Department dept = departmentRepo.findById(updated.getDepartment().getId())
-                        .orElseThrow(() -> new RuntimeException("Department not found"));
-                emp.setDepartment(dept);
-            }
+        // Email
+        if (updated.getEmail() != null) {
+            emp.setEmail(updated.getEmail());
+        }
+
+        // Role
+        if (updated.getRole() != null) {
+            emp.setRole(updated.getRole());
+        }
+
+        // Password — only overwrite if a non-blank value was sent
+        if (updated.getPassword() != null && !updated.getPassword().isBlank()) {
+            emp.setPassword(updated.getPassword());
+        }
+
+        // Status — persist the status field (Active / Inactive / Removed)
+        if (updated.getStatus() != null) {
+            emp.setStatus(updated.getStatus());
+        }
+
+        // Department — resolve and set
+        if (updated.getDepartment() != null && updated.getDepartment().getId() != null) {
+            Department dept = departmentRepo.findById(updated.getDepartment().getId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+            emp.setDepartment(dept);
         }
 
         return employeeRepo.save(emp);
     }
 
+    // ✅ DELETE EMPLOYEE
     @DeleteMapping("/employees/{id}")
     public String deleteEmployee(@PathVariable Long id) {
-
         Employee emp = employeeRepo.findById(id).orElse(null);
-
         if (emp == null) {
             return "❌ Employee not found";
         }
-
         try {
             employeeRepo.delete(emp);
             return "✅ Employee deleted successfully";
         } catch (Exception e) {
             e.printStackTrace();
-            return "❌ Cannot delete employee (linked data exists)";
+            return "❌ Cannot delete employee (linked data exists). Use Edit → set status to Removed instead.";
         }
     }
 }
