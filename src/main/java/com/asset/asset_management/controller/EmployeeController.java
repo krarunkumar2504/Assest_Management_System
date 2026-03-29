@@ -5,9 +5,12 @@ import com.asset.asset_management.model.Employee;
 import com.asset.asset_management.repository.EmployeeRepository;
 import com.asset.asset_management.repository.DepartmentRepository;
 import com.asset.asset_management.service.AuditLogService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -17,7 +20,7 @@ import java.util.List;
 })
 public class EmployeeController {
 
-    private final EmployeeRepository  employeeRepo;
+    private final EmployeeRepository   employeeRepo;
     private final DepartmentRepository departmentRepo;
     private final AuditLogService      auditLogService;
 
@@ -29,41 +32,57 @@ public class EmployeeController {
         this.auditLogService = auditLogService;
     }
 
-    // ✅ CREATE EMPLOYEE
+    // ── CREATE EMPLOYEE ───────────────────────────────────────────────────
     @PostMapping("/employees")
-    public Employee createEmployee(@RequestBody Employee employee) {
+    public ResponseEntity<?> createEmployee(
+            @RequestBody Employee employee,
+            @RequestHeader(value = "X-Performed-By", required = false) String performedByHeader) {
+
         if (employee.getDepartment() != null && employee.getDepartment().getId() != null) {
             Department dept = departmentRepo.findById(employee.getDepartment().getId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             employee.setDepartment(dept);
         }
+
+        // Handle joined_date sent as string field "joined_date" from frontend
+        // (Spring auto-deserialises LocalDate from ISO "yyyy-MM-dd" via Jackson)
+
         Employee saved = employeeRepo.save(employee);
 
-        // ── Audit log ──────────────────────────────────────
+        String performer = resolvePerformedBy(employee, performedByHeader);
         auditLogService.saveLog(
                 "CREATE_EMPLOYEE",
-                "Created employee " + saved.getEmployeeName() + " (ID: " + saved.getId() + ")",
-                resolvePerformedBy(employee)
+                "Created employee: " + saved.getEmployeeName()
+                        + " | Email: " + saved.getEmail()
+                        + " | Role: " + saved.getRole()
+                        + " | ID: #" + saved.getId(),
+                performer
         );
 
-        return saved;
+        return ResponseEntity.ok(saved);
     }
 
-    // ✅ GET ALL EMPLOYEES
+    // ── GET ALL EMPLOYEES ────────────────────────────────────────────────
     @GetMapping("/employees")
     public List<Employee> getAllEmployees() {
         return employeeRepo.findAll();
     }
 
-    // ✅ GET EMPLOYEE BY ID
+    // ── GET EMPLOYEE BY ID ───────────────────────────────────────────────
     @GetMapping("/employees/{id}")
-    public Employee getEmployeeById(@PathVariable Long id) {
-        return employeeRepo.findById(id).orElse(null);
+    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
+        return employeeRepo.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ UPDATE EMPLOYEE
+    // ── UPDATE EMPLOYEE ───────────────────────────────────────────────────
     @PutMapping("/employees/{id}")
-    public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee updated) {
+    public ResponseEntity<?> updateEmployee(
+            @PathVariable Long id,
+            @RequestBody Employee updated,
+            @RequestHeader(value = "X-Performed-By", required = false) String performedByHeader) {
+
         Employee emp = employeeRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found: " + id));
 
@@ -71,6 +90,7 @@ public class EmployeeController {
         if (updated.getEmail()        != null) emp.setEmail(updated.getEmail());
         if (updated.getRole()         != null) emp.setRole(updated.getRole());
         if (updated.getStatus()       != null) emp.setStatus(updated.getStatus());
+        if (updated.getJoinedDate()   != null) emp.setJoinedDate(updated.getJoinedDate());
         if (updated.getPassword() != null && !updated.getPassword().isBlank())
             emp.setPassword(updated.getPassword());
         if (updated.getDepartment() != null && updated.getDepartment().getId() != null) {
@@ -81,43 +101,69 @@ public class EmployeeController {
 
         Employee saved = employeeRepo.save(emp);
 
-        // ── Audit log ──────────────────────────────────────
+        String performer = resolvePerformedBy(updated, performedByHeader);
         auditLogService.saveLog(
                 "UPDATE_EMPLOYEE",
-                "Updated employee " + saved.getEmployeeName() + " (ID: " + saved.getId() + ")",
-                resolvePerformedBy(updated)
+                "Updated employee: " + saved.getEmployeeName()
+                        + " | Email: " + saved.getEmail()
+                        + " | Role: " + saved.getRole()
+                        + " | Status: " + saved.getStatus()
+                        + " | ID: #" + saved.getId(),
+                performer
         );
 
-        return saved;
+        return ResponseEntity.ok(saved);
     }
 
-    // ✅ DELETE EMPLOYEE
+    // ── DELETE EMPLOYEE ───────────────────────────────────────────────────
     @DeleteMapping("/employees/{id}")
-    public String deleteEmployee(@PathVariable Long id) {
+    public ResponseEntity<?> deleteEmployee(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Performed-By", required = false) String performedByHeader) {
+
         Employee emp = employeeRepo.findById(id).orElse(null);
-        if (emp == null) return "❌ Employee not found";
+        if (emp == null) {
+            return ResponseEntity.status(404).body(
+                    Map.of("message", "Employee not found"));
+        }
+
+        String name      = emp.getEmployeeName();
+        String email     = emp.getEmail();
+        String performer = (performedByHeader != null && !performedByHeader.isBlank())
+                ? performedByHeader
+                : "Admin";
 
         try {
-            String name = emp.getEmployeeName();
             employeeRepo.delete(emp);
 
-            // ── Audit log ──────────────────────────────────
+            // Log AFTER successful delete so count is accurate
             auditLogService.saveLog(
                     "DELETE_EMPLOYEE",
-                    "Deleted employee " + name + " (ID: " + id + ")",
-                    "Admin"
+                    "Deleted employee: " + name
+                            + " | Email: " + email
+                            + " | ID: #" + id,
+                    performer
             );
 
-            return "✅ Employee deleted successfully";
+            return ResponseEntity.ok(
+                    Map.of("message", "Employee deleted successfully"));
+
         } catch (Exception e) {
             e.printStackTrace();
-            return "❌ Cannot delete employee (linked data exists). Use Edit → set status to Removed instead.";
+            return ResponseEntity.status(409).body(
+                    Map.of("message",
+                            "Cannot delete employee (linked asset assignments exist). "
+                                    + "Use Edit → set Status to 'Removed' instead."));
         }
     }
 
-    /** Best-effort: use email as performed-by; fall back to "Admin". */
-    private String resolvePerformedBy(Employee e) {
-        if (e.getEmail() != null && !e.getEmail().isBlank()) return e.getEmail();
+    // ── HELPER ────────────────────────────────────────────────────────────
+    /**
+     * Priority: X-Performed-By header → employee email → "Admin"
+     */
+    private String resolvePerformedBy(Employee e, String header) {
+        if (header != null && !header.isBlank()) return header;
+        if (e != null && e.getEmail() != null && !e.getEmail().isBlank()) return e.getEmail();
         return "Admin";
     }
 }
